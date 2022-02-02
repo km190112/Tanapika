@@ -53,9 +53,10 @@ void LedTest(uint16_t ledLen) {
   CRGB leds[TEST_LEDLEN];
   FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, ledLen).setCorrection(TypicalLEDStrip);
 
-  uint16_t i;
+  
   FastLED.clear();
-  for (i = 0; i < ledLen; i++)
+  
+  for (uint16_t i = 0; i < ledLen; i++)
   {
     leds[i] = CRGB( TEST_BRIGHTNESS, 0, 0);
     FastLED.show();
@@ -106,6 +107,7 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len)
   Serial.print(F("LedStep : ")); Serial.println(myData.LedStep);
   Serial.print(F("ledLen : ")); Serial.println(myData.ledLen);
   Serial.print(F("brightness : ")); Serial.println(myData.brightness);
+  Serial.print(F("ledColor : ")); Serial.println(myData.ledColor);
 
   if (myData.resetF == 1) //マイコンのリセット
   {
@@ -125,6 +127,7 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len)
   if (myData.resetF == 2) // LEDをフラグにあわせて表示
   {
     char coler;
+
     for (i = 0; i < myData.ledLen; i++)
     {
       if (i > 0 && i % myData.LedStep != 0 || i >= myData.ledColor.length() - 1)
