@@ -53,10 +53,10 @@ void LedTest(uint16_t ledLen) {
   CRGB leds[TEST_LEDLEN];
   FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, ledLen).setCorrection(TypicalLEDStrip);
 
-  
+
   FastLED.clear();
-  
-  for (uint16_t i = 0; i < ledLen; i++)
+  uint16_t i;
+  for (i = 0; i < ledLen; i++)
   {
     leds[i] = CRGB( TEST_BRIGHTNESS, 0, 0);
     FastLED.show();
@@ -107,8 +107,12 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len)
   Serial.print(F("LedStep : ")); Serial.println(myData.LedStep);
   Serial.print(F("ledLen : ")); Serial.println(myData.ledLen);
   Serial.print(F("brightness : ")); Serial.println(myData.brightness);
-  Serial.print(F("ledColor : ")); Serial.println(myData.ledColor);
 
+  Serial.print(F("ledColor.length : "));  Serial.println(myData.ledColor.length());
+  Serial.print(F("ledColor : ")); Serial.println(myData.ledColor);
+  char Buf[100];
+  myData.ledColor.toCharArray(Buf, 100);
+  
   if (myData.resetF == 1) //マイコンのリセット
   {
     FastLED.clear();
@@ -137,7 +141,8 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len)
 
       else
       {
-        coler = char(myData.ledColor.charAt(i));
+        coler = Buf(i);
+        Serial.print(coler);
 
         // LEDの色と明るさを設定
         if (coler == 'N') {
