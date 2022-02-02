@@ -9,10 +9,8 @@
   esp_now_send()     送信：送信先MACアドレスを指定して、250バイトまでのデータを送信可能
   ボーレート UART0(USB):115200bps
   デフォルトは8bit、パリティなし、1ストップビット
-
   PCからの送信データイメージ
   MACアドレス,マイコンのフラグ,LEDの明るさ,接続しているLEDの最大数,利用するLEDの間隔,LEDごとの色フラグ\r\n
-
   //PCの送信データ例"08:3A:F2:68:5C:E4,2,100,50,2,RRRRGGBNNWWWWGBRGBR\r\n"
 */
 #include <M5Stack.h>
@@ -20,12 +18,7 @@
 #include <WiFi.h>
 #include <esp_now.h>
 
-const uint8_t ESPNOW_CHANNEL = 0;  //ESP-NOWのチャンネル番号受信側のチャンネルと合わせる
-// ESPNOWピア情報パラメータ
-esp_now_peer_info_t peerInfo;
-esp_err_t result;
-esp_now_peer_num_t peerNum;
-
+//ESP-NOWで送信するデータを構造体に格納
 // データを受信するための構造
 // 送信者の構造と一致する必要があります。ESP-NOWのペイロード長：205byte/最大250byte
 typedef struct struct_message {
@@ -37,16 +30,17 @@ typedef struct struct_message {
 } struct_message;
 struct_message myData; // myDataというstruct_messageを作成
 
+const uint8_t ESPNOW_CHANNEL = 0;  //ESP-NOWのチャンネル番号受信側のチャンネルと合わせる
+esp_now_peer_info_t peerInfo;      // ESPNOWピア情報パラメータ
+
+
 //PCから受信するときのバッファ
-#define DATASIZE 300   // 一度に送る文字列のバイト数
+#define DATASIZE 270   // 一度に送る文字列のバイト数
 char buffArr[DATASIZE];
 uint16_t bufp = 0;
 
-String strData = "";
-String tempStrData[6] = {"\0"}; // 分割された文字列を格納する配列
-char inChar = '\n';
 
-int split(String data, char delimiter, String *dst) {
+int split(const String data, const char delimiter, String *dst) {
   int index = 0;
   int arraySize = (sizeof(data) / sizeof((data)[0]));
   int datalength = data.length();
@@ -62,24 +56,29 @@ int split(String data, char delimiter, String *dst) {
 }
 
 
-int dataSet(const String &strData) {
-  //文字列分割とデータ格納
-  // 分割数 = 分割処理(文字列, 区切り文字, 配列)
-  int index = split(strData, ',', tempStrData);
+int dataSet(const String &str) {
+  Serial.print(F("strData : "));  Serial.println(str);
 
-  //  if (index == 6) {
-  //    Serial.printf("Data String Error");
-  //    return 1;
-  //  }
-  //  if (tempStrData[1].length() != 17) {
-  //    Serial.println("MacAddress length Err");
-  //    return 2;
-  //  }
+  //文字列分割とデータ格納
+  String tempStrData[6] = {"\0"}; // 分割された文字列を格納する配列
+  int index = split(str, ',', tempStrData);  // 分割数 = 分割処理(文字列, 区切り文字, 配列)
+
+  // test 値確認
+  Serial.print(F("PeerAddr : "));  Serial.println(tempStrData[0]);
+  Serial.printf("resetF : %d \n", tempStrData[1].toInt());
+  Serial.printf("brightness : %d \n", tempStrData[2].toInt());
+  Serial.printf("ledLen : %d \n", tempStrData[3].toInt());
+  Serial.printf("LedStep : %d \n", tempStrData[4].toInt());
+  Serial.print(F("ledColor : ")); Serial.println(tempStrData[5]);
+
+  Serial.print(F("PeerAddrLEN : "));  Serial.println(tempStrData[0].length());
+  tempStrData[0].trim();
+  
 
   //MACアドレスを配列に変換
   uint8_t PeerAddress[6];
   char CmacBuf[16];
-  tempStrData[0].toCharArray(CmacBuf, 16);
+  tempStrData[1].toCharArray(CmacBuf, 16);
   char temp[3];
   uint8_t i;
   for (i = 0; i < 6; i++) {
@@ -90,67 +89,68 @@ int dataSet(const String &strData) {
     Serial.printf("PeerAddr[ % x] = % x\n", i, PeerAddress[i]);
   }
 
-  Serial.printf("resetF : %d \n", tempStrData[1].toInt());
-  Serial.printf("brightness : %d \n", tempStrData[2].toInt());
-  Serial.printf("ledLen : %d \n", tempStrData[3].toInt());
-  Serial.printf("LedStep : %d \n", tempStrData[4].toInt());
-  Serial.print("ledColor :" ); Serial.println(tempStrData[5]);
-
+  Serial.print(F("peerInfo.channel : "));  Serial.println(peerInfo.channel);
+  Serial.print(F("peerInfo.encrypt : "));  Serial.println(peerInfo.encrypt);
   //ESP-NOWに登録するピア情報
   memcpy(peerInfo.peer_addr, PeerAddress, 6);
   peerInfo.channel = ESPNOW_CHANNEL;  //チャンネル
   peerInfo.encrypt = 0;               //暗号化しない
 
-  //ESP-NOWで送信するデータを構造体に格納
-  myData.resetF = 0;
-  myData.brightness = 0;
-  myData.ledLen = 0;
-  myData.LedStep = 0;
   myData.ledColor = "";
 
-  myData.resetF = tempStrData[1].toInt();
-  myData.brightness = tempStrData[2].toInt();
-  myData.ledLen = tempStrData[3].toInt();
-  myData.LedStep = tempStrData[4].toInt();
-  myData.ledColor = tempStrData[5];
+  myData.resetF = tempStrData[2].toInt();
+  myData.brightness = tempStrData[3].toInt();
+  myData.ledLen = tempStrData[4].toInt();
+  myData.LedStep = tempStrData[5].toInt();
+  myData.ledColor = tempStrData[6];
 
-  return 0;
+  //データ送信
+  EspNowSend();
 }
 
-//エラー情報
-int EspNowErrF(esp_err_t &flg) {
+//エラー情報 esp_err_t
+int EspNowErrF(const esp_err_t &flg) {
   switch (flg) {
     case ESP_OK:
-      Serial.println("ok");
+      Serial.println(F("ESP_OK"));
       return 0;
     case ESP_ERR_ESPNOW_NOT_INIT:
-      Serial.println("ESP_ERR_ESPNOW_NOT_INIT");
+      Serial.println(F("ESP_ERR_ESPNOW_NOT_INIT")); //ESPNOWは初期化されていません
       return 1;
     case ESP_ERR_ESPNOW_ARG:
-      Serial.println("ESP_ERR_ESPNOW_ARG");
+      Serial.println(F("ESP_ERR_ESPNOW_ARG")); //引数が無効です
       return 2;
     case ESP_ERR_ESPNOW_INTERNAL:
-      Serial.println("ESP_ERR_ESPNOW_INTERNAL");
+      Serial.println(F("ESP_ERR_ESPNOW_INTERNAL")); //内部エラー
       return 3;
     case ESP_ERR_ESPNOW_NO_MEM:
-      Serial.println("ESP_ERR_ESPNOW_NO_MEM");
+      Serial.println(F("ESP_ERR_ESPNOW_NO_MEM")); //メモリ不足
       return 4;
     case ESP_ERR_ESPNOW_NOT_FOUND:
-      Serial.println("ESP_ERR_ESPNOW_NOT_FOUND");
+      Serial.println(F("ESP_ERR_ESPNOW_NOT_FOUND")); //ピアが見つかりません
       return 5;
     case ESP_ERR_ESPNOW_EXIST:
-      Serial.println("ESP_ERR_ESPNOW_EXIST");
+      Serial.println(F("ESP_ERR_ESPNOW_EXIST")); //ESPNOWピアが存在しました
       return 6;
+    case ESP_ERR_ESPNOW_FULL:
+      Serial.println(F("ESP_ERR_ESPNOW_FULL")); //ピアリストがいっぱいです
+      return 7;
+    case ESP_ERR_ESPNOW_IF:
+      Serial.println(F("ESP_ERR_ESPNOW_IF")); //現在のWiFiインターフェースがピアのインターフェースと一致しません
+      return 7;
     default:
       Serial.println("Err");
-      return 7;
+      return 8;
   }
   return 0;
 }
 
 
 //ESP-NOWでデータ送信
-int EspNowSend() {
+void EspNowSend() {
+  esp_err_t result;
+  esp_now_peer_num_t peerNum;
+
   const uint8_t *peer_addrP = peerInfo.peer_addr;
 
   // ピアが存在しない場合
@@ -159,7 +159,7 @@ int EspNowSend() {
     result = esp_now_add_peer(&peerInfo);
     Serial.print(F("esp_now_add_peer :"));
     if ( EspNowErrF(result) > 0) {
-      return 1;
+      return;
     }
   }
 
@@ -167,20 +167,20 @@ int EspNowSend() {
   result = esp_now_send(peer_addrP, (uint8_t *)&myData, sizeof(myData));
   Serial.print(F("esp_now_send :"));
   if ( EspNowErrF(result) > 0) {
-    return 2;
+    return;
   }
 
   // ピアが最大数に達している場合は削除
-  Serial.printf("peerNum.total_num: %d /n", peerNum.total_num);
-  Serial.printf("ESP_NOW_MAX_TOTAL_PEER_NUM: %d /n", ESP_NOW_MAX_TOTAL_PEER_NUM);
+  Serial.printf("peerNum.total_num: %d \n", peerNum.total_num);
+  Serial.printf("ESP_NOW_MAX_TOTAL_PEER_NUM: %d \n", ESP_NOW_MAX_TOTAL_PEER_NUM);
   if (peerNum.total_num >= ESP_NOW_MAX_TOTAL_PEER_NUM)
   {
     result = esp_now_del_peer(peer_addrP); //ピアリスト削除
     if ( EspNowErrF(result) > 0) {
-      return 3;
+      return;
     }
   }
-  return 0;
+  return;
 }
 
 
@@ -216,10 +216,18 @@ void InitESPNow() {
 *********************************************/
 void setup() {
   delay(200);
-  M5.begin();
-  strData.reserve(DATASIZE); // strDATAの文字列の格納領域をbyte数確保
-
+  //M5.begin();
+  M5.begin(true, false, true, true);
   delay(50);
+  
+  //LCD表示設定
+  M5.Lcd.setBrightness(200);
+  M5.Lcd.setTextSize(4);//文字の大きさを設定（1～7）
+  M5.Lcd.setTextColor(RED); //文字色設定(背景は透明)(WHITE, BLACK, RED, GREEN, BLUE, YELLOW...)
+  M5.Lcd.fillScreen(BLACK);
+  //  M5.Lcd.sleep();
+  //  M5.Lcd.setBrightness(0);
+  
   //ESP-NOWの接続
   InitESPNow();
 
@@ -228,12 +236,6 @@ void setup() {
   Serial.print(F("My MAC Address: "));
   Serial.println(WiFi.macAddress());
   Serial.println(F("Waiting for reception"));
-
-  //LCD表示設定
-  M5.Lcd.setBrightness(200);
-  M5.Lcd.setTextSize(4);//文字の大きさを設定（1～7）
-  M5.Lcd.setTextColor(RED); //文字色設定(背景は透明)(WHITE, BLACK, RED, GREEN, BLUE, YELLOW...)
-  M5.Lcd.fillScreen(BLACK);
 }
 
 
@@ -242,40 +244,32 @@ void loop() {
   if ( M5.BtnA.wasPressed() )  //ボタンAを押したとき
   {
     //バッファクリア
-    strData = "";
     bufp = 0;
     while (Serial1.available() > 0)
     {
-      (char)Serial.read();
+      Serial.read();
     }
     Serial.println(F("Buffer cler"));
   }
   else if ( M5.BtnB.wasPressed() ) //ボタンBを押したとき
   {
-
     //testデータ
-    inChar = '\n';
-    strData = "08:3A:F2:68:5C:E4,2,100,50,2,RRRRGGBNNWWWWGBRGBR" + inChar;
-
+    String strData = "08:3A:F2:68:5C:E4,2,100,50,2,RRRRGGBNNWWWWGBRGBR";
     // データESP-NOWで送信
     if (dataSet(strData) == 0) {
-      Serial.println(F("dataSet ok"));
-      // データを構造体に入れる
-      if (EspNowSend() == 0) {
-        Serial.println(F("EspNowSend ok"));
-      }
+      delay(5);
     }
     //バッファクリア
     strData = "";
     bufp = 0;
     while (Serial1.available() > 0)
     {
-      (char)Serial.read();
+      Serial.read();
     }
     Serial.println(F("Buffer cler"));
 
     M5.Lcd.fillScreen(BLACK);
-    M5.Lcd.setCursor(0, 0); M5.Lcd.print("ESP-NOW Test\n");
+    M5.Lcd.setCursor(0, 0); M5.Lcd.println(F("ESP-NOW Test"));
   }
   else if ( M5.BtnC.wasPressed() ) //ボタンCを押したとき
   {
@@ -286,16 +280,15 @@ void loop() {
   //PCからシリアルデータの読み込み
   while (Serial.available() > 0)       // 受信したデータバッファが1バイト以上存在する場合
   {
-    inChar = (char)Serial.read(); // Serialからデータ読み込み
+    char inChar = (char)Serial.read(); // Serialからデータ読み込み
 
     if (bufp >= DATASIZE)
     {
       //バッファクリア
-      strData = "";
       bufp = 0;
       while (Serial1.available() > 0)
       {
-        (char)Serial.read();
+        Serial.read();
       }
       Serial.println(F("Error data baffer over"));
     }
@@ -304,8 +297,11 @@ void loop() {
     if (inChar == '\n')
     {
       buffArr[bufp] = '\0';
-
-      strData += buffArr[bufp];
+      String strData;
+      strData.reserve(bufp);
+      for (int i = 0; i < bufp; i++) {
+        strData += buffArr[bufp];
+      }
 
       Serial.println(strData);
 
@@ -313,29 +309,23 @@ void loop() {
       {
         // データESP-NOWで送信
         if (dataSet(strData) == 0) {
-          Serial.println(F("dataSet ok"));
-          // データを構造体に入れる
-          if (EspNowSend() == 0) {
-            Serial.println(F("EspNowSend ok"));
-          }
+          delay(5);
         }
+
       } else {
-        Serial.println("data NG");
+        Serial.println(F("data NG"));
       }
       //バッファクリア
-      strData = "";
       bufp = 0;
       buffArr[bufp] = '\0';
-
       while (Serial1.available() > 0)
       {
-        char inChar = (char)Serial.read();
+        Serial.read();
       }
     }
     else if (inChar != '\r')   // CRの改行コードの場合は結合しない
     {
       buffArr[bufp] = inChar; // 読み込んだデータを結合
-      strData += inChar;
       bufp ++;
     }
   }
