@@ -13,9 +13,9 @@
 #include <FastLED.h>
 
 //FastLED
-#define LED_PIN           26 //LEDの信号出力のピン番号
-#define TEST_BRIGHTNESS  100 //テスト用 LEDの明るさ
-#define TEST_LEDLEN       50 //テスト用 LEDの個数
+#define LED_PIN          26 //LEDの信号出力のピン番号
+#define TEST_BRIGHTNESS  20 //テスト用 LEDの明るさ
+#define TEST_LEDLEN      200 //テスト用 LEDの個数
 #define LED_TYPE    WS2812B
 #define COLOR_ORDER GRB
 
@@ -27,7 +27,7 @@ typedef struct struct_message
   uint8_t brightness;// LEDの明るさ(20~最大255)
   uint16_t ledLen;   // 接続しているLEDの最大数。ledColorに格納したバイト数
   uint16_t LedStep;  // 利用するLEDの間隔。ledColorが5番目でLedStepが3の場合：16番目のLEDが点灯する
-  String ledColor;   // LEDごとに先頭から光らせる色を指定(R,G,B,N,Wのいずれかを指定)最大200番目まで設定可
+  char ledColor[201];// LEDごとに先頭から光らせる色を指定(R,G,B,N,Wのいずれかを指定)最大200番目まで設定可
 } struct_message;
 
 // myDataというstruct_messageを作成します
@@ -44,50 +44,52 @@ void InitESPNow() {
   else
   {
     Serial.println(F("ESPNow Init Failed"));
-    // ESP.restart();
+    delay(500);
+    ESP.restart();
   }
 }
 
-void LedTest(uint16_t ledLen) {
+void LedTest() {
   //FastLEDのテスト
   CRGB leds[TEST_LEDLEN];
-  FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, ledLen).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, TEST_LEDLEN).setCorrection(TypicalLEDStrip);
 
 
   FastLED.clear();
   uint16_t i;
-  for (i = 0; i < ledLen; i++)
+  for (i = 0; i < TEST_LEDLEN; i++)
   {
     leds[i] = CRGB( TEST_BRIGHTNESS, 0, 0);
     FastLED.show();
-    delay(150);
+    delay(20);
   }
 
   FastLED.clear();
-  for (i = 0; i < ledLen; i++)
+  for (i = 0; i < TEST_LEDLEN; i++)
   {
     leds[i] = CRGB( 0, TEST_BRIGHTNESS, 0);
     FastLED.show();
-    delay(120);
+    delay(20);
   }
   FastLED.clear();
-  for (i = 0; i < ledLen; i++)
+  for (i = 0; i < TEST_LEDLEN; i++)
   {
     leds[i] = CRGB( 0, 0, TEST_BRIGHTNESS);
     FastLED.show();
-    delay(80);
+    delay(20);
   }
 
   FastLED.clear();
-  for (i = 0; i < ledLen; i++)
+  FastLED.show();
+  delay(20);
+
+  for (i = 0; i < TEST_LEDLEN; i++)
   {
-
     leds[i] = CRGB( TEST_BRIGHTNESS, TEST_BRIGHTNESS, TEST_BRIGHTNESS);
-
-    FastLED.show();
-    delay(80);
   }
+  FastLED.show();
 
+  delay(1000);
   //LEDを消灯
   FastLED.clear();
   FastLED.show();
@@ -101,18 +103,14 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len)
   memcpy(&myData, incomingData, sizeof(myData));
 
   //シリアル出力
-  //Serial.print(F("MAC Address: ")); Serial.println(mac);
   Serial.print(F("Bytes received: ")); Serial.println(len);
   Serial.print(F("ResetFlag : ")); Serial.println(myData.resetF);
   Serial.print(F("LedStep : ")); Serial.println(myData.LedStep);
   Serial.print(F("ledLen : ")); Serial.println(myData.ledLen);
   Serial.print(F("brightness : ")); Serial.println(myData.brightness);
+  Serial.print(F("ledColor.length : "));  Serial.println(sizeof(myData.ledColor));
 
-  Serial.print(F("ledColor.length : "));  Serial.println(myData.ledColor.length());
-  Serial.print(F("ledColor : ")); Serial.println(myData.ledColor);
-  char Buf[100];
-  myData.ledColor.toCharArray(Buf, 100);
-  
+
   if (myData.resetF == 1) //マイコンのリセット
   {
     FastLED.clear();
@@ -125,47 +123,53 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len)
   //FastLEDライブラリを利用してWS2812BのLEDテープを表示
   CRGB leds[myData.ledLen];
   FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, myData.ledLen).setCorrection(TypicalLEDStrip);
-  uint16_t i;
 
   FastLED.clear();
+
+  uint16_t i;
+  uint16_t p;
+  p = 0;
+
   if (myData.resetF == 2) // LEDをフラグにあわせて表示
   {
-    char coler;
-
     for (i = 0; i < myData.ledLen; i++)
     {
-      if (i > 0 && i % myData.LedStep != 0 || i >= myData.ledColor.length() - 1)
+      if (i == 0 || i % myData.LedStep != 0 || i >= sizeof(myData.ledColor))
       {
         leds[i] = CRGB( 0, 0, 0); //LED消灯
       }
-
       else
       {
-        coler = Buf(i);
-        Serial.print(coler);
+        //Serial.print(i); Serial.println(myData.ledColor[i]);
 
         // LEDの色と明るさを設定
-        if (coler == 'N') {
+        if (myData.ledColor[p] == 'N') {
           leds[i] = CRGB( 0, 0, 0); //LED消灯
         }
-        else if (coler == 'R') {
+        else if (myData.ledColor[p] == 'R') {
           leds[i] = CRGB( myData.brightness, 0, 0); //赤
         }
-        else if (coler == 'G') {
+        else if (myData.ledColor[p] == 'G') {
           leds[i] = CRGB( 0, myData.brightness, 0); //緑
         }
-        else if (coler == 'B') {
+        else if (myData.ledColor[p] == 'B') {
           leds[i] = CRGB( 0, 0, myData.brightness); //青
         }
-        else if (coler == 'W') {
+        else if (myData.ledColor[p] == 'W') {
           leds[i] = CRGB( myData.brightness, myData.brightness, myData.brightness); //白
         }
         else {
           leds[i] = CRGB( 0, 0, 0); //LED消灯
         }
+
+        p++;
       }
     }
     FastLED.show();
+
+    M5.Speaker.beep();        // ビープ開始
+    delay(100);               // 100ms鳴らす(beep()のデフォルト)
+    M5.Speaker.mute();        //　ビープ停止
   }
   else if (myData.resetF > 3) // LED全消灯
   {
@@ -176,18 +180,23 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len)
     }
     FastLED.show();
 
+    M5.Speaker.beep();        // ビープ開始
+    delay(100);               // 100ms鳴らす(beep()のデフォルト)
+    M5.Speaker.mute();        //　ビープ停止
   }
   else if (myData.resetF > 4) // LED動作テスト(順次LEDを光らせる)
   {
-    LedTest(TEST_LEDLEN);
+    LedTest();
   }
+
   //M5StaLCD表示
   M5.Lcd.clear(); // 画面全体を消去
   M5.Lcd.fillScreen(BLACK);
-  M5.Lcd.setCursor(5, 5); M5.Lcd.println("Resive");
-  M5.Lcd.println(myData.resetF);
-  M5.Lcd.println(myData.LedStep);
-  M5.Lcd.println(myData.ledLen);
+  M5.Lcd.setCursor(5, 5);
+  M5.Lcd.println(F("Resive"));
+  M5.Lcd.print(F("resetF"));    M5.Lcd.println(myData.resetF);
+  M5.Lcd.print(F("LedStep")); M5.Lcd.println(myData.LedStep);
+  M5.Lcd.print(F("ledLen"));  M5.Lcd.println(myData.ledLen);
 }
 
 
@@ -233,6 +242,10 @@ void loop()
   {
     M5.Lcd.clear(); // 画面全体を消去
     M5.Lcd.setBrightness(0); //バックライトの輝度（0~255)
+
+    FastLED.clear();
+    FastLED.show();
+
   }
   else if (M5.BtnC.wasPressed()) // Cボタンが押された時：テスト用
   {
@@ -241,6 +254,6 @@ void loop()
     delay(100);               // 100ms鳴らす(beep()のデフォルト)
     M5.Speaker.mute();        //　ビープ停止
 
-    LedTest(TEST_LEDLEN);
+    LedTest();
   }
 }

@@ -26,7 +26,7 @@ typedef struct struct_message {
   uint8_t brightness; // LEDの明るさ(20~最大255)
   uint16_t ledLen;    // 接続しているLEDの最大数。ledColorに格納したバイト数
   uint16_t LedStep;   // 利用するLEDの間隔。ledColorが5番目でLedStepが3の場合：16番目のLEDが点灯する
-  String ledColor;    // LEDごとに先頭から光らせる色を指定(R,G,B,N,Wのいずれかを指定)最大200番目まで設定可
+  char ledColor[201];    // LEDごとに先頭から光らせる色を指定(R,G,B,N,Wのいずれかを指定)最大200番目まで設定可
 } struct_message;
 struct_message myData; // myDataというstruct_messageを作成
 
@@ -64,16 +64,15 @@ int dataSet(const String &str) {
   int index = split(str, ',', tempStrData);  // 分割数 = 分割処理(文字列, 区切り文字, 配列)
 
   // test 値確認
-  //  Serial.print(F("PeerAddrLEN : "));  Serial.println(tempStrData[0].length());
-  //  Serial.print(F("PeerAddr : "));  Serial.println(tempStrData[0]);
-  //  Serial.printf("resetF : %d \n", tempStrData[1].toInt());
-  //  Serial.printf("brightness : %d \n", tempStrData[2].toInt());
-  //  Serial.printf("ledLen : %d \n", tempStrData[3].toInt());
-  //  Serial.printf("LedStep : %d \n", tempStrData[4].toInt());
-  //  Serial.print(F("ledColor : ")); Serial.println(tempStrData[5]);
+  Serial.print(F("PeerAddrLEN : "));  Serial.println(tempStrData[0].length());
+  Serial.print(F("PeerAddr : "));  Serial.println(tempStrData[0]);
+  Serial.printf("resetF : %d \n", tempStrData[1].toInt());
+  Serial.printf("brightness : %d \n", tempStrData[2].toInt());
+  Serial.printf("ledLen : %d \n", tempStrData[3].toInt());
+  Serial.printf("LedStep : %d \n", tempStrData[4].toInt());
+  Serial.print(F("ledColor : ")); Serial.println(tempStrData[5]);
 
   tempStrData[0].trim();
-  tempStrData[5].trim();
 
   //MACアドレスを配列に変換
   uint8_t PeerAddress[6];
@@ -89,20 +88,22 @@ int dataSet(const String &str) {
     //    Serial.printf("PeerAddr[ % x] = % x\n", i, PeerAddress[i]);
   }
 
-  //  Serial.print(F("peerInfo.channel : "));  Serial.println(peerInfo.channel);
-  //  Serial.print(F("peerInfo.encrypt : "));  Serial.println(peerInfo.encrypt);
   //ESP-NOWに登録するピア情報
   memcpy(peerInfo.peer_addr, PeerAddress, 6);
   peerInfo.channel = ESPNOW_CHANNEL;  //チャンネル
   peerInfo.encrypt = 0;               //暗号化しない
 
-  myData.ledColor = "";
 
   myData.resetF = tempStrData[1].toInt();
   myData.brightness = tempStrData[2].toInt();
   myData.ledLen = tempStrData[3].toInt();
   myData.LedStep = tempStrData[4].toInt();
-  myData.ledColor = tempStrData[5];
+
+  myData.ledColor[0] = '\n';
+  char ledColorBuf[tempStrData[5].length() + 1];
+  tempStrData[5].toCharArray(ledColorBuf, tempStrData[5].length());
+  memcpy(myData.ledColor, ledColorBuf, sizeof(ledColorBuf));
+  myData.ledColor[sizeof(ledColorBuf)] = '\n';
 
   // test 値確認
   //  Serial.println("");
@@ -234,9 +235,7 @@ void setup() {
   // ESPNOWデータ送信のコールバック機能を登録
   esp_now_register_send_cb(OnDataSent);
 
-  Serial.print(F("My MAC Address: "));
-  Serial.println(WiFi.macAddress());
-  Serial.println(F("Waiting for reception"));
+  Serial.print(F("My MAC Address: ")); Serial.println(WiFi.macAddress());
 
   //LCD表示設定
   M5.Lcd.setBrightness(200);
@@ -244,9 +243,9 @@ void setup() {
   M5.Lcd.setTextColor(BLUE); //文字色設定(背景は透明)(WHITE, BLACK, RED, GREEN, BLUE, YELLOW...)
   M5.Lcd.fillScreen(BLACK);
   //  M5.Lcd.sleep();
-  //  M5.Lcd.setBrightness(0);
+  M5.Lcd.setBrightness(200);
 
-  M5.Lcd.setCursor(0, 0); 
+  M5.Lcd.setCursor(0, 0);
   M5.Lcd.println("ESP-NOW Send");
   M5.Lcd.println(WiFi.macAddress());
 }
@@ -272,7 +271,7 @@ void loop() {
   else if ( M5.BtnB.wasPressed() ) //ボタンBを押したとき //testデータ1
   {
     Serial.println(F("test2 Start"));
-    String strData = "08:3A:F2:68:5C:E4,2,50,50,2,RRRRGGBNNWWWWGBRGBRNNNNNR";
+    String strData = "08:3A:F2:68:5C:E4,2,50,100,1,RNNNNGNNNNBNNNNWRGBWRGBWNNNNNNNWNNNBBBBBBBB";
     // データESP-NOWで送信
     if (dataSet(strData) == 0) {
       delay(500);
@@ -294,7 +293,7 @@ void loop() {
   else if ( M5.BtnC.wasPressed() ) //ボタンCを押したとき //testデータ2
   {
     Serial.println(F("test2 Start"));
-    String strData = "08:3A:F2:68:5A:90,2,255,50,2,RRRRGGBNNWWWWGBRGBRNNNNNR";
+    String strData = "08:3A:F2:68:5A:90,2,255,100,2,RNNNNGNNNNBNNNNWRGBWRGBWNNNNNNNW";
     // データESP-NOWで送信
     if (dataSet(strData) == 0) {
       delay(500);
@@ -340,13 +339,15 @@ void loop() {
     if (inChar == '\n')
     {
       buffArr[bufp] = '\0';
-      String strData;
-      strData.reserve(bufp);
-      for (int i = 0; i < bufp; i++) {
-        strData += buffArr[bufp];
-      }
 
-      Serial.println(strData);
+      String strData;
+      strData.reserve(bufp + 1);
+
+      for (int i = 0; i <= bufp; i++) {
+        strData += (char)buffArr[i];
+      }
+      Serial.println("bufp   :"); Serial.println(bufp);
+      Serial.println("strData:"); Serial.println(strData);
 
       if (bufp >= 27)
       {
