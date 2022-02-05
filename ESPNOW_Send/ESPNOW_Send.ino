@@ -22,11 +22,11 @@
 // データを受信するための構造
 // 送信者の構造と一致する必要があります。ESP-NOWのペイロード長：205byte/最大250byte
 typedef struct struct_message {
-  uint8_t resetF;     // 1=マイコンリセット、2=LEDを点灯、3=LED全消灯
+  uint8_t resetF;     // 1=マイコンリセット、2=LEDを点灯、3=LED全消灯4=Resive側のLED Testプログラムを動かす
   uint8_t brightness; // LEDの明るさ(20~最大255)
   uint16_t ledLen;    // 接続しているLEDの最大数。ledColorに格納したバイト数
   uint16_t LedStep;   // 利用するLEDの間隔。ledColorが5番目でLedStepが3の場合：16番目のLEDが点灯する
-  char ledColor[201];    // LEDごとに先頭から光らせる色を指定(R,G,B,N,Wのいずれかを指定)最大200番目まで設定可
+  char ledColor[201]; // LEDごとに先頭から光らせる色を指定(R,G,B,N,Wのいずれかを指定)最大200番目まで設定可
 } struct_message;
 struct_message myData; // myDataというstruct_messageを作成
 
@@ -39,6 +39,7 @@ esp_now_peer_info_t peerInfo;      // ESPNOWピア情報パラメータ
 char buffArr[DATASIZE];
 uint16_t bufp = 0;
 
+bool sendF = true;
 
 int split(const String data, const char delimiter, String *dst) {
   int index = 0;
@@ -57,6 +58,8 @@ int split(const String data, const char delimiter, String *dst) {
 
 
 int dataSet(const String &str) {
+  sendF == false;
+
   Serial.print(F("strData : "));  Serial.println(str);
 
   //文字列分割とデータ格納
@@ -202,6 +205,7 @@ void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
   Serial.print(macStr);
   //Serial.print("\r\nLast Packet Send Status:\t");
   Serial.println(status == ESP_NOW_SEND_SUCCESS ? ":Delivery Success" : ":Delivery Fail");
+  sendF == true;
 }
 
 void InitESPNow() {
@@ -228,7 +232,9 @@ void setup() {
   //M5.begin();
   M5.begin(true, false, true, true);
   delay(50);
-
+  
+  sendF = true;
+  
   //ESP-NOWの接続
   InitESPNow();
 
@@ -248,6 +254,7 @@ void setup() {
   M5.Lcd.setCursor(0, 0);
   M5.Lcd.println("ESP-NOW Send");
   M5.Lcd.println(WiFi.macAddress());
+  
 }
 
 
@@ -272,9 +279,14 @@ void loop() {
   {
     Serial.println(F("test2 Start"));
     String strData = "08:3A:F2:68:5C:E4,2,50,100,1,RNNNNGNNNNBNNNNWRGBWRGBWNNNNNNNWNNNBBBBBBBB";
+    //String strData = "08:3A:F2:68:5C:E4,4";受信機側のテストプログラム実行
     // データESP-NOWで送信
-    if (dataSet(strData) == 0) {
-      delay(500);
+    if (sendF == false){
+      Serial.println("busy");
+      delay(50);
+    }
+    else if (dataSet(strData) == 0) { // データESP-NOWで送信
+      delay(50);
     }
     //バッファクリア
     strData = "";
@@ -293,11 +305,16 @@ void loop() {
   else if ( M5.BtnC.wasPressed() ) //ボタンCを押したとき //testデータ2
   {
     Serial.println(F("test2 Start"));
-    String strData = "08:3A:F2:68:5A:90,2,255,100,2,RNNNNGNNNNBNNNNWRGBWRGBWNNNNNNNW";
+    String strData = "08:3A:F2:68:5A:90,2,255,100,2,RRRRRRRRRRRRRRRNNGGNNBBNNWWNNWRGBWRGBWNNNNNNNR";
     // データESP-NOWで送信
-    if (dataSet(strData) == 0) {
-      delay(500);
+    if (sendF == false){
+      Serial.println("busy");
+      delay(50);
     }
+    else if (dataSet(strData) == 0) { // データESP-NOWで送信
+      delay(50);
+    }
+
     //バッファクリア
     strData = "";
     bufp = 0;
@@ -351,16 +368,16 @@ void loop() {
 
       if (bufp >= 27)
       {
-        // データESP-NOWで送信
-        if (dataSet(strData) == 0) {
+        if (sendF == false){
+          Serial.println("busy");
+          delay(50);
+        }
+        else if (dataSet(strData) == 0) { // データESP-NOWで送信
           delay(50);
         }
 
       } else {
         Serial.println(F("data NG"));
-        M5.Lcd.setCursor(0, 0);
-        M5.Lcd.println("ESP-NOW Send");
-        M5.Lcd.println("data NG");
       }
       //バッファクリア
       bufp = 0;

@@ -13,9 +13,9 @@
 #include <FastLED.h>
 
 //FastLED
-#define LED_PIN          26 //LEDの信号出力のピン番号
-#define TEST_BRIGHTNESS  20 //テスト用 LEDの明るさ
-#define TEST_LEDLEN      200 //テスト用 LEDの個数
+#define LED_PIN          26  //LEDの信号出力のピン番号
+#define TEST_BRIGHTNESS  10  //テスト用 LEDの明るさ
+#define TEST_LEDLEN      600 //テスト用 LEDの個数
 #define LED_TYPE    WS2812B
 #define COLOR_ORDER GRB
 
@@ -33,56 +33,54 @@ typedef struct struct_message
 // myDataというstruct_messageを作成します
 struct_message myData;
 
-void InitESPNow() {
-  WiFi.mode(WIFI_STA); // デバイスをWi-Fiステーションとして設定する
-  WiFi.disconnect();
-  delay(100);
-  if (esp_now_init() == ESP_OK)
-  {
-    Serial.println(F("ESPNow Init Success"));
-  }
-  else
-  {
-    Serial.println(F("ESPNow Init Failed"));
-    delay(500);
-    ESP.restart();
-  }
+
+void fastLedClear() {
+  //FastLEDでLED全消灯
+  CRGB leds[TEST_LEDLEN];
+  FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, TEST_LEDLEN).setCorrection(TypicalLEDStrip);
+  FastLED.clear();
+  FastLED.show();
+  delay(50);
 }
 
+
 void LedTest() {
+  fastLedClear();
+
   //FastLEDのテスト
   CRGB leds[TEST_LEDLEN];
   FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, TEST_LEDLEN).setCorrection(TypicalLEDStrip);
-
-
   FastLED.clear();
+
   uint16_t i;
+
   for (i = 0; i < TEST_LEDLEN; i++)
   {
     leds[i] = CRGB( TEST_BRIGHTNESS, 0, 0);
     FastLED.show();
-    delay(20);
-  }
-
-  FastLED.clear();
-  for (i = 0; i < TEST_LEDLEN; i++)
-  {
-    leds[i] = CRGB( 0, TEST_BRIGHTNESS, 0);
-    FastLED.show();
-    delay(20);
-  }
-  FastLED.clear();
-  for (i = 0; i < TEST_LEDLEN; i++)
-  {
-    leds[i] = CRGB( 0, 0, TEST_BRIGHTNESS);
-    FastLED.show();
-    delay(20);
+    delay(10);
   }
 
   FastLED.clear();
   FastLED.show();
-  delay(20);
 
+  for (i = 0; i < TEST_LEDLEN; i++)
+  {
+    delay(10);
+    leds[i] = CRGB( 0, TEST_BRIGHTNESS, 0);
+    FastLED.show();
+  }
+
+  FastLED.clear();
+  for (i = 0; i < TEST_LEDLEN; i++)
+  {
+    delay(10);
+    leds[i] = CRGB( 0, 0, TEST_BRIGHTNESS);
+    FastLED.show();
+  }
+
+  delay(500);
+  FastLED.clear();
   for (i = 0; i < TEST_LEDLEN; i++)
   {
     leds[i] = CRGB( TEST_BRIGHTNESS, TEST_BRIGHTNESS, TEST_BRIGHTNESS);
@@ -90,16 +88,17 @@ void LedTest() {
   FastLED.show();
 
   delay(1000);
-  //LEDを消灯
-  FastLED.clear();
-  FastLED.show();
+
+  fastLedClear();
 }
-
-
 
 // データを受信したときに実行されるコールバック関数
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len)
 {
+  M5.Speaker.beep();        // ビープ開始
+  delay(100);               // 100ms鳴らす(beep()のデフォルト)
+  M5.Speaker.mute();        //　ビープ停止
+
   memcpy(&myData, incomingData, sizeof(myData));
 
   //シリアル出力
@@ -110,21 +109,15 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len)
   Serial.print(F("brightness : ")); Serial.println(myData.brightness);
   Serial.print(F("ledColor.length : "));  Serial.println(sizeof(myData.ledColor));
 
-
   if (myData.resetF == 1) //マイコンのリセット
   {
     FastLED.clear();
     FastLED.show();       //テープLEDに送信
+    
     Serial.print(F("ESP.restart"));
-    delay(1000);
+    delay(500);
     ESP.restart();
   }
-
-  //FastLEDライブラリを利用してWS2812BのLEDテープを表示
-  CRGB leds[myData.ledLen];
-  FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, myData.ledLen).setCorrection(TypicalLEDStrip);
-
-  FastLED.clear();
 
   uint16_t i;
   uint16_t p;
@@ -132,6 +125,11 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len)
 
   if (myData.resetF == 2) // LEDをフラグにあわせて表示
   {
+    //FastLEDライブラリを利用してWS2812BのLEDテープを表示
+    CRGB leds[myData.ledLen];
+    FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, myData.ledLen).setCorrection(TypicalLEDStrip);
+    FastLED.clear();
+
     for (i = 0; i < myData.ledLen; i++)
     {
       if (i == 0 || i % myData.LedStep != 0 || i >= sizeof(myData.ledColor))
@@ -140,8 +138,6 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len)
       }
       else
       {
-        //Serial.print(i); Serial.println(myData.ledColor[i]);
-
         // LEDの色と明るさを設定
         if (myData.ledColor[p] == 'N') {
           leds[i] = CRGB( 0, 0, 0); //LED消灯
@@ -161,30 +157,20 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len)
         else {
           leds[i] = CRGB( 0, 0, 0); //LED消灯
         }
-
         p++;
       }
     }
     FastLED.show();
-
-    M5.Speaker.beep();        // ビープ開始
-    delay(100);               // 100ms鳴らす(beep()のデフォルト)
-    M5.Speaker.mute();        //　ビープ停止
   }
-  else if (myData.resetF > 3) // LED全消灯
+  else if (myData.resetF == 3) // LED全消灯
   {
-    for (i = 0; i < TEST_LEDLEN; i++)
-    {
-      leds[i] = CRGB( 0, 0, 0);
-
-    }
+    //FastLEDでLED全消灯
+    CRGB leds[TEST_LEDLEN];
+    FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, TEST_LEDLEN).setCorrection(TypicalLEDStrip);
+    FastLED.clear();
     FastLED.show();
-
-    M5.Speaker.beep();        // ビープ開始
-    delay(100);               // 100ms鳴らす(beep()のデフォルト)
-    M5.Speaker.mute();        //　ビープ停止
   }
-  else if (myData.resetF > 4) // LED動作テスト(順次LEDを光らせる)
+  else if (myData.resetF == 4) // LED動作テスト(順次LEDを光らせる)
   {
     LedTest();
   }
@@ -192,13 +178,27 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len)
   //M5StaLCD表示
   M5.Lcd.clear(); // 画面全体を消去
   M5.Lcd.fillScreen(BLACK);
-  M5.Lcd.setCursor(5, 5);
-  M5.Lcd.println(F("Resive"));
-  M5.Lcd.print(F("resetF"));    M5.Lcd.println(myData.resetF);
-  M5.Lcd.print(F("LedStep")); M5.Lcd.println(myData.LedStep);
-  M5.Lcd.print(F("ledLen"));  M5.Lcd.println(myData.ledLen);
+  M5.Lcd.setCursor(0, 0);  M5.Lcd.println(F("Receive"));
+  M5.Lcd.print(F("resetF  : ")); M5.Lcd.println(myData.resetF);
+  M5.Lcd.print(F("LedStep : ")); M5.Lcd.println(myData.LedStep);
+  M5.Lcd.print(F("ledLen  : ")); M5.Lcd.println(myData.ledLen);
 }
 
+void InitESPNow() {
+  WiFi.mode(WIFI_STA); // デバイスをWi-Fiステーションとして設定する
+  WiFi.disconnect();
+  delay(100);
+  if (esp_now_init() == ESP_OK)
+  {
+    Serial.println(F("ESPNow Init Success"));
+  }
+  else
+  {
+    Serial.println(F("ESPNow Init Failed"));
+    delay(500);
+    ESP.restart();
+  }
+}
 
 void setup()
 {
@@ -207,15 +207,17 @@ void setup()
   M5.Power.begin();
 
   M5.Speaker.begin();       // ノイズ(ポップ音)が出る
-  M5.Speaker.setVolume(1);  // 0は無音、1が最小、8が初期値(結構大きい)
+  M5.Speaker.setVolume(2);  // 0は無音、1が最小、8が初期値(結構大きい)
 
+  fastLedClear(); // LED全消去
+
+  //LCDの表示設定
   M5.Lcd.setBrightness(200); //バックライトの輝度（0~255)
   M5.Lcd.fillScreen(BLACK);  //背景色(WHITE, BLACK, RED, GREEN, BLUE, YELLOW...)
   M5.Lcd.setTextColor(WHITE, BLACK); //文字色設定と背景色設定
   M5.Lcd.setTextSize(3);     //文字サイズ（1～7）
-  M5.Lcd.setCursor(0, 0);
-  M5.Lcd.println("MAC Address:");
-  M5.Lcd.println(WiFi.macAddress());
+  M5.Lcd.setCursor(0, 0);  M5.Lcd.println(F("Receive"));
+  M5.Lcd.println(F("MAC Address"));  M5.Lcd.println(WiFi.macAddress());
 
   Serial.println(WiFi.macAddress()); // このアドレスを送信側へ登録します
   delay(50);
@@ -229,31 +231,43 @@ void setup()
 
 void loop()
 {
-  delay(100);
   M5.update();  // ボタン操作の状況を読み込む関数(ボタン操作を行う際は必須)
 
   if (M5.BtnA.wasPressed()) // Aボタンが押された時:リセット
   {
-    Serial.println("Reset");
+    M5.Speaker.beep();        // ビープ開始
+    delay(100);               // 100ms鳴らす(beep()のデフォルト)
+    M5.Speaker.mute();        //　ビープ停止
+    
+    fastLedClear(); // LED全消去
+
+    Serial.println(F("ESP32 Reset"));
     delay(100);
     esp_restart();
   }
-  else if (M5.BtnB.wasPressed()) // Bボタンが押された時：画面暗くして省電力モード
+  else if (M5.BtnB.wasPressed()) // Bボタンが押された時：LED消去
   {
+    M5.Speaker.beep();        // ビープ開始
+    delay(100);               // 100ms鳴らす(beep()のデフォルト)
+    M5.Speaker.mute();        //　ビープ停止
+    
+    fastLedClear(); // LED全消去
     M5.Lcd.clear(); // 画面全体を消去
-    M5.Lcd.setBrightness(0); //バックライトの輝度（0~255)
-
-    FastLED.clear();
-    FastLED.show();
-
+    M5.Lcd.setCursor(0, 0);  M5.Lcd.println(F("Receive"));
   }
   else if (M5.BtnC.wasPressed()) // Cボタンが押された時：テスト用
   {
-    Serial.println("FastLED test");
+    M5.Lcd.clear(); // 画面全体を消去
+    M5.Lcd.setCursor(0, 0); M5.Lcd.println(F("FastLED test"));
+
+    Serial.println(F("FastLED test"));
     M5.Speaker.beep();        // ビープ開始
     delay(100);               // 100ms鳴らす(beep()のデフォルト)
     M5.Speaker.mute();        //　ビープ停止
 
     LedTest();
+    M5.Lcd.clear(); // 画面全体を消去
+    M5.Lcd.setCursor(0, 0);  M5.Lcd.println(F("Receive"));
   }
+  delay(100);
 }
