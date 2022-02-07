@@ -314,7 +314,7 @@ void loop() {
   else if ( M5.BtnC.wasPressed() ) //ボタンCを押したとき //testデータ2
   {
     Serial.println(F("test2 Start"));
-    String strData = "08:3A:F2:68:5A:90,2,255,100,1,RRRRRRRRRRRRRRRNNGGNNBBNNWWNNWRGBWRGBWNNNNNNNR";
+    String strData = "08:3A:F2:68:5A:90,2,255,100,1,RRRRRRRRRRRRRRRNNGGNNBBNNWWNNWRGBWRGBWNNNNNNNRW";
 
     // データESP-NOWで送信
     if (sendF == false) {

@@ -33,7 +33,7 @@ typedef struct struct_message
 // myDataというstruct_messageを作成します
 struct_message myData;
 
-bool busyF = true; //LED更新中に変更できないようにする。
+bool busyF = false; //LED更新中に変更できないようにする。
 
 
 void fastLedClear() {
@@ -42,7 +42,7 @@ void fastLedClear() {
   FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, TEST_LEDLEN).setCorrection(TypicalLEDStrip);
   FastLED.clear();
   FastLED.show();
-  delay(100);
+  delay(50);
 }
 
 
@@ -100,8 +100,10 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len)
 {
   if (busyF == true) {
     //書き換え中なので何もしない
+    return;
 
   }
+
   memcpy(&myData, incomingData, sizeof(myData));
 
   M5.Speaker.beep();        // ビープ開始
@@ -116,8 +118,6 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len)
   Serial.print(F("brightness : ")); Serial.println(myData.brightness);
   Serial.print(F("ledColor.length : "));  Serial.println(sizeof(myData.ledColor));
 
-  //fastLedClear();
-
   //FastLEDライブラリを利用してWS2812BのLEDテープを表示
   CRGB leds[myData.ledLen];
   FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, myData.ledLen).setCorrection(TypicalLEDStrip);
@@ -127,8 +127,8 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len)
   {
     FastLED.show();       //テープLEDに送信
 
-    Serial.print(F("ESP.restart"));
-    delay(500);
+    Serial.println(F("ESP.restart"));
+    delay(50);
     ESP.restart();
   }
 
@@ -144,7 +144,6 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len)
     }
 
     String test = "";
-
     for (i = 0; i <= myData.ledLen; i++)
     {
       if (i >= sizeof(myData.ledColor)) {
@@ -180,13 +179,15 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len)
         p++;
       }
     }
-    Serial.println(test);
     FastLED.show();
+    Serial.println(test);
+    Serial.println(F(""));
+
   }
   else if (myData.resetF == 3) // LED全消灯
   {
-    //FastLEDでLED全消灯
-    fastLedClear();
+    FastLED.show();       //テープLEDに送信
+    Serial.println(F("LED Clear"));
   }
   else if (myData.resetF == 4) // LED動作テスト(順次LEDを光らせる)
   {
@@ -201,7 +202,7 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len)
   M5.Lcd.print(F("LedStep : ")); M5.Lcd.println(myData.LedStep);
   M5.Lcd.print(F("ledLen  : ")); M5.Lcd.println(myData.ledLen);
 
-  busyF = true;
+  busyF = false;
 }
 
 
@@ -256,44 +257,46 @@ void loop()
 
   if (M5.BtnA.wasPressed()) // Aボタンが押された時:リセット
   {
-    busyF = false;
     M5.Speaker.beep();        // ビープ開始
     delay(100);               // 100ms鳴らす(beep()のデフォルト)
     M5.Speaker.mute();        //　ビープ停止
 
-    fastLedClear(); // LED全消去
-
     Serial.println(F("ESP32 Reset"));
-    delay(100);
+    delay(50);
     esp_restart();
   }
   else if (M5.BtnB.wasPressed()) // Bボタンが押された時：LED消去
   {
-    busyF = false;
-    M5.Speaker.beep();        // ビープ開始
-    delay(100);               // 100ms鳴らす(beep()のデフォルト)
-    M5.Speaker.mute();        //　ビープ停止
+    if (busyF != true) {
+      busyF = true;
+      M5.Speaker.beep();        // ビープ開始
+      delay(100);               // 100ms鳴らす(beep()のデフォルト)
+      M5.Speaker.mute();        //　ビープ停止
 
-    fastLedClear(); // LED全消去
-    M5.Lcd.clear(); // 画面全体を消去
-    M5.Lcd.setCursor(0, 0);  M5.Lcd.println(F("Receive"));
-    busyF = true;
+      fastLedClear(); // LED全消去
+      M5.Lcd.clear(); // 画面全体を消去
+      M5.Lcd.setCursor(0, 0);  M5.Lcd.println(F("Receive"));
+      busyF = false;
+    }
+
   }
   else if (M5.BtnC.wasPressed()) // Cボタンが押された時：テスト用
   {
-    busyF = false;
-    M5.Lcd.clear(); // 画面全体を消去
-    M5.Lcd.setCursor(0, 0); M5.Lcd.println(F("FastLED test"));
+    if (busyF != true) {
+      busyF = true;
+      M5.Lcd.clear(); // 画面全体を消去
+      M5.Lcd.setCursor(0, 0); M5.Lcd.println(F("FastLED test"));
 
-    Serial.println(F("FastLED test"));
-    M5.Speaker.beep();        // ビープ開始
-    delay(100);               // 100ms鳴らす(beep()のデフォルト)
-    M5.Speaker.mute();        //　ビープ停止
+      Serial.println(F("FastLED test"));
+      M5.Speaker.beep();        // ビープ開始
+      delay(100);               // 100ms鳴らす(beep()のデフォルト)
+      M5.Speaker.mute();        //　ビープ停止
 
-    LedTest();
-    M5.Lcd.clear(); // 画面全体を消去
-    M5.Lcd.setCursor(0, 0);  M5.Lcd.println(F("Receive"));
-    busyF = true;
+      LedTest();
+      M5.Lcd.clear(); // 画面全体を消去
+      M5.Lcd.setCursor(0, 0);  M5.Lcd.println(F("Receive"));
+      busyF = false;
+    }
   }
 
   delay(100);
