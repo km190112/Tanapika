@@ -197,7 +197,7 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len)
   //M5StaLCD表示
   M5.Lcd.clear(); // 画面全体を消去
   M5.Lcd.fillScreen(BLACK);
-  M5.Lcd.setCursor(0, 0);  M5.Lcd.println(F("Receive"));
+  M5.Lcd.setCursor(0, 0);        M5.Lcd.println(F("Receive"));
   M5.Lcd.print(F("resetF  : ")); M5.Lcd.println(myData.resetF);
   M5.Lcd.print(F("LedStep : ")); M5.Lcd.println(myData.LedStep);
   M5.Lcd.print(F("ledLen  : ")); M5.Lcd.println(myData.ledLen);
