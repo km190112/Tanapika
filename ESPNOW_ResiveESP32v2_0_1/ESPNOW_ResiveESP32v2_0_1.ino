@@ -4,22 +4,19 @@
   ESP32 DevkitCを使用
   ESP-NOWはWPA2標準で使用するための標準暗号化プロトコル
   ESP32の開発会社であるEspressifが開発した通信方式で、内容的にはIEEE 802.11のCCM Protocolを使って通信
-
-  Ver:2.0.0
-
 */
 #include <esp_now.h>
 #include <WiFi.h>
 #include <FastLED.h>
 
-String ver = "Ver:2.0.1";
+String verson = "Ver:2.1";
 
 #define SERIAL_BPS 115200 //シリアル通信の速度bps
 
 //FastLED
 #define LED_PIN          33 //LEDの信号出力のピン番号
 #define TEST_BRIGHTNESS  10 //テスト用 LEDの明るさ
-#define TEST_LEDLEN     800 //テスト用 LEDの個数
+#define TEST_LEDLEN     400 //テスト用 LEDの個数
 #define LED_TYPE    WS2812B
 #define COLOR_ORDER GRB
 
@@ -125,7 +122,7 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len)
     String test = "";
     for (i = 0; i <= myData.ledLen; i++)
     {
-      if (i >= sizeof(myData.ledColor)) {
+      if (i > sizeof(myData.ledColor)) {
         break;
       }
 
@@ -158,8 +155,8 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len)
         p++;
       }
     }
-    FastLED.show();
 
+    FastLED.show();
 
     Serial.print(F("LED Color:")); Serial.println(test);
   }
@@ -208,7 +205,7 @@ void setup()
 
   fastLedClear(); // LED全消去
 
-  Serial.print(F("TanaPika Received:")); Serial.println(ver);
+  Serial.print(F("TanaPika Received :")); Serial.println(verson);
 
   Serial.print(F("MACAddress: ")); Serial.println(WiFi.macAddress()); // このアドレスを送信側へ登録します
 
@@ -220,8 +217,7 @@ void setup()
   Serial.println(F("ESP-NOW Start"));
 }
 
-
 void loop()
 {
-  delay(5);
+  delay(1);
 }
