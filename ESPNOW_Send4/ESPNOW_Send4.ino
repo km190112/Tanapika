@@ -43,7 +43,7 @@ esp_now_peer_info_t peerInfo;      // ESPNOWピア情報パラメータ
 char buffArr[DATASIZE];
 uint16_t bufp = 0;
 
-bool sendF = true;     //MACアドレス層での通信が取れたときに送信できるようにするフラグ
+bool sendF = true;  //MACアドレス層での通信が取れたときに送信できるようにするフラグ
 
 //String文字列をString配列にカンマごとに分割
 int split(const String data, const char delimiter, String *dst) {
@@ -149,6 +149,7 @@ void setup() {
     delay(1000);
     ESP.restart();
   }
+  Serial.println(F("BluetoothSerial Init Success"));
   delay(100);
 
   //ESP-NOWの接続
@@ -173,7 +174,6 @@ void setup() {
   while (SerialBT.available() > 0) {
     SerialBT.read();
   }
-
 }
 
 
@@ -206,7 +206,7 @@ void loop() {
       if (bufp >= 25 && sendF == true) {  //データのバイト数に不足がない場合に送信
 
         if (dataSend(strData) == 0) {  // データESP-NOWで送信
-          delay(3);
+          delay(1);
         }
 
       } else {
