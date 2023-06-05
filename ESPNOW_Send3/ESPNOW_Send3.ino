@@ -12,7 +12,7 @@
   デフォルトは8bit、パリティなし、1ストップビット
   PCからの送信データイメージ
   MACアドレス,マイコンのフラグ,LEDの明るさ,接続しているLEDの最大数,利用するLEDの間隔,LEDごとの色フラグ\r\n
-  //PCの送信データ例"08:3A:F2:68:5C:E4,2,100,50,2,RRRRGGBNNWWWWGBRGBR\r\n"
+  //PCの送信データ例"08:3A:F2:68:5C:E4,2,100,50,1,RRRRGGBNNWWWWGBRGBR\r\n"
 */
 #include <M5Stack.h>
 #include <WiFi.h>
@@ -40,7 +40,7 @@ char buffArr[DATASIZE];
 uint16_t bufp = 0;
 
 bool sendF = true;  //MACアドレス層での通信が取れたときに送信できるようにするフラグ
-
+int testCnt = 0;
 
 //String文字列をString配列にカンマごとに分割
 int split(const String data, const char delimiter, String *dst) {
@@ -103,31 +103,31 @@ int EspNowErrF(const esp_err_t &flg) {
     case ESP_OK:
       return 0;
     case ESP_ERR_ESPNOW_NOT_INIT:
-      SerialBT.print(F("ESP_ERR_ESPNOW_NOT_INIT"));  //ESPNOWは初期化されていません
+      Serial.print(F("ESP_ERR_ESPNOW_NOT_INIT"));  //ESPNOWは初期化されていません
       return 1;
     case ESP_ERR_ESPNOW_ARG:
-      SerialBT.print(F("ESP_ERR_ESPNOW_ARG"));  //引数が無効です
+      Serial.print(F("ESP_ERR_ESPNOW_ARG"));  //引数が無効です
       return 2;
     case ESP_ERR_ESPNOW_INTERNAL:
-      SerialBT.print(F("ESP_ERR_ESPNOW_INTERNAL"));  //内部エラー
+      Serial.print(F("ESP_ERR_ESPNOW_INTERNAL"));  //内部エラー
       return 3;
     case ESP_ERR_ESPNOW_NO_MEM:
-      SerialBT.print(F("ESP_ERR_ESPNOW_NO_MEM"));  //メモリ不足
+      Serial.print(F("ESP_ERR_ESPNOW_NO_MEM"));  //メモリ不足
       return 4;
     case ESP_ERR_ESPNOW_NOT_FOUND:
-      SerialBT.print(F("ESP_ERR_ESPNOW_NOT_FOUND"));  //ピアが見つかりません
+      Serial.print(F("ESP_ERR_ESPNOW_NOT_FOUND"));  //ピアが見つかりません
       return 5;
     case ESP_ERR_ESPNOW_EXIST:
-      SerialBT.print(F("ESP_ERR_ESPNOW_EXIST"));  //ESPNOWピアが存在しました
+      Serial.print(F("ESP_ERR_ESPNOW_EXIST"));  //ESPNOWピアが存在しました
       return 6;
     case ESP_ERR_ESPNOW_FULL:
-      SerialBT.print(F("ESP_ERR_ESPNOW_FULL"));  //ピアリストがいっぱいです
+      Serial.print(F("ESP_ERR_ESPNOW_FULL"));  //ピアリストがいっぱいです
       return 7;
     case ESP_ERR_ESPNOW_IF:
-      SerialBT.print(F("ESP_ERR_ESPNOW_IF"));  //現在のWiFiインターフェースがピアのインターフェースと一致しません
+      Serial.print(F("ESP_ERR_ESPNOW_IF"));  //現在のWiFiインターフェースがピアのインターフェースと一致しません
       return 8;
     default:
-      SerialBT.print(F("ESP_ERR"));
+      Serial.print(F("ESP_ERR"));
       return 9;
   }
 
@@ -193,7 +193,7 @@ void setup() {
   M5.begin();
   M5.Power.begin();
 
-  Serial.bigin(115200);
+  Serial.begin(115200);
   delay(50);
 
   //LCD表示設定
@@ -232,6 +232,43 @@ void setup() {
 
 
 void loop() {
+  M5.update();
+
+  if (M5.BtnA.wasPressed()) {
+    String testStr = "9C:9C:1F:C1:D5:D0,4,120,90,1,NN";
+
+    if (dataSet(testStr) == 0) {  // データESP-NOWで送信するための構造体に格納
+      EspNowSend();               // データ送信
+      delay(1);
+    }
+  } else if (M5.BtnB.wasPressed()) {
+    String testStr = "";
+
+    switch (testCnt) {
+      case 1:
+        testStr = "9C:9C:1F:C1:D5:D0,2,120,90,1,BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB";
+      case 2:
+        testStr = "9C:9C:1F:C1:D5:D0,2,120,90,1,RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR";
+      case 3:
+        testStr = "9C:9C:1F:C1:D5:D0,2,120,90,1,GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG";
+      case 4:
+        testStr = "9C:9C:1F:C1:D5:D0,2,120,90,1,WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW";
+    }
+
+    if (dataSet(testStr) == 0) {  // データESP-NOWで送信するための構造体に格納
+      EspNowSend();               // データ送信
+      delay(1);
+    }
+    testCnt++;
+
+  } else if (M5.BtnC.wasPressed()) {
+    String testStr = "9C:9C:1F:C1:D5:D0,3,120,90,1,NN";
+
+    if (dataSet(testStr) == 0) {  // データESP-NOWで送信するための構造体に格納
+      EspNowSend();               // データ送信
+      delay(1);
+    }
+  }
 
   //PCからシリアルデータの読み込み
   while (Serial.available() > 0)  // 受信したデータバッファが1バイト以上存在する場合
@@ -257,7 +294,7 @@ void loop() {
         strData += (char)buffArr[i];
       }
 
-      if (bufp >= 25 && sendF == True)  //データのバイト数に不足がない場合に送信
+      if (bufp >= 25 && sendF == true)  //データのバイト数に不足がなければ送信
       {
         if (dataSet(strData) == 0) {  // データESP-NOWで送信するための構造体に格納
           EspNowSend();               // データ送信
