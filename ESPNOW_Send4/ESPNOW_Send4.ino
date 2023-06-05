@@ -98,9 +98,6 @@ int dataSend(const String &str) {
 
   memcpy(myData.ledColor, ledColorBuf, sizeof(ledColorBuf));
   myData.ledColor[tempStrData[5].length() + 2] = '\0';
-
-  //データ送信
-  EspNowSend();
 }
 
 
@@ -136,6 +133,7 @@ void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
   sendF == true;
 }
 
+
 /*********************************************
               セットアップ関数
 *********************************************/
@@ -143,14 +141,6 @@ void setup() {
 
   Serial.begin(115200);
   delay(50);
-
-  if (!SerialBT.begin(bt_name)) {
-    Serial.println(F("BluetoothSerial Init Failed"));
-    delay(1000);
-    ESP.restart();
-  }
-  Serial.println(F("BluetoothSerial Init Success"));
-  delay(100);
 
   //ESP-NOWの接続
   WiFi.mode(WIFI_STA);  // デバイスをWi-Fiステーションとして設定する
@@ -168,12 +158,22 @@ void setup() {
   esp_now_register_send_cb(OnDataSent);
   sendF = true;
 
-  Serial.println(F("Start"));
+  delay(300);
+
+  if (!SerialBT.begin(bt_name)) {
+    Serial.println(F("BluetoothSerial Init Failed"));
+    delay(1000);
+    ESP.restart();
+  }
+
+  Serial.println(F("BluetoothSerial Init Success"));
 
   //　バッファクリア 一応念のため。
   while (SerialBT.available() > 0) {
     SerialBT.read();
   }
+
+  Serial.println(F("Start"));
 }
 
 
@@ -206,10 +206,9 @@ void loop() {
       if (bufp >= 25 && sendF == true) {  //データのバイト数に不足がない場合に送信
 
         if (dataSend(strData) == 0) {  // データESP-NOWで送信
-          delay(1);
+          EspNowSend();                //データ送信
+          delay(3);
         }
-
-      } else {
       }
 
       //バッファクリア
@@ -222,7 +221,6 @@ void loop() {
     } else if (inChar == '\r' || inChar == '\0')  // CRの改行コードの場合かNULL文字は結合しない
     {
       //なにもしない
-
     } else {
       buffArr[bufp] = inChar;  // 読み込んだデータを結合
       bufp++;
