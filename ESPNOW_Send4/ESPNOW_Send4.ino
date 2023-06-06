@@ -14,11 +14,8 @@
   MACアドレス,マイコンのフラグ,LEDの明るさ,接続しているLEDの最大数,利用するLEDの間隔,LEDごとの色フラグ\r\n
   //PCの送信データ例"08:3A:F2:68:5C:E4,2,100,50,2,RRRRGGBNNWWWWGBRGBR\r\n"
 */
-#include "BluetoothSerial.h"
-BluetoothSerial SerialBT;
 
-const char *bt_name = "ESP32TanaPikaSendBT_SPPver4";
-
+#include <M5Stack.h>
 #include <WiFi.h>
 #include <esp_now.h>
 
@@ -44,6 +41,7 @@ char buffArr[DATASIZE];
 uint16_t bufp = 0;
 
 bool sendF = true;  //MACアドレス層での通信が取れたときに送信できるようにするフラグ
+uint8_t testCnt = 0;
 
 //String文字列をString配列にカンマごとに分割
 int split(const String data, const char delimiter, String *dst) {
@@ -61,7 +59,7 @@ int split(const String data, const char delimiter, String *dst) {
 }
 
 //文字列を分割して構造体に格納する。
-int dataSend(const String &str) {
+int dataSplit(const String &str) {
   sendF == false;
 
   //文字列分割とデータ格納
@@ -79,7 +77,7 @@ int dataSend(const String &str) {
     temp[1] = CmacBuf[i * 3 + 1];
     temp[2] = 0x00;
     PeerAddress[i] = strtol(temp, NULL, 16);
-    //    SerialBT.printf("PeerAddr[ % x] = % x\n", i, PeerAddress[i]);
+    //    Serial.printf("PeerAddr[ % x] = % x\n", i, PeerAddress[i]);
   }
 
   //ESP-NOWに登録するピア情報
@@ -98,6 +96,8 @@ int dataSend(const String &str) {
 
   memcpy(myData.ledColor, ledColorBuf, sizeof(ledColorBuf));
   myData.ledColor[tempStrData[5].length() + 2] = '\0';
+
+  return 0;
 }
 
 
@@ -138,8 +138,23 @@ void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
               セットアップ関数
 *********************************************/
 void setup() {
+  M5.begin();
+  M5.Power.begin();
 
-  Serial.begin(115200);
+  //LCD表示設定
+  //  M5.Lcd.sleep();
+  //  M5.Axp.ScreenBreath(9); //明るさ：M5StickCの場合(0-12)
+  M5.Lcd.setBrightness(20);  //明るさ：M5Stackの場合(0-255)
+  //  M5.Lcd.setRotation(3); //画面の向き(0-3)
+  M5.Lcd.setTextFont(2);       //フォントを指定(1-8)1=Adafruit 8ピクセルASCIIフォント,2=16ピクセルASCIIフォント
+  M5.Lcd.setTextSize(3);       //文字の大きさを設定（1～7）
+  M5.Lcd.setTextColor(WHITE);  //文字色設定(背景は透明)(WHITE, BLACK, RED, GREEN, BLUE, YELLOW...)
+  M5.Lcd.fillScreen(BLACK);
+
+  M5.Lcd.setCursor(0, 0);
+  M5.Lcd.println(F("TanaPika Send"));
+  M5.Lcd.println(F("Softwere Ver4"));
+
   delay(50);
 
   //ESP-NOWの接続
@@ -158,19 +173,9 @@ void setup() {
   esp_now_register_send_cb(OnDataSent);
   sendF = true;
 
-  delay(300);
-
-  if (!SerialBT.begin(bt_name)) {
-    Serial.println(F("BluetoothSerial Init Failed"));
-    delay(1000);
-    ESP.restart();
-  }
-
-  Serial.println(F("BluetoothSerial Init Success"));
-
   //　バッファクリア 一応念のため。
-  while (SerialBT.available() > 0) {
-    SerialBT.read();
+  while (Serial.available() > 0) {
+    Serial.read();
   }
 
   Serial.println(F("Start"));
@@ -178,17 +183,67 @@ void setup() {
 
 
 void loop() {
+  M5.update();
+
+  if (M5.BtnA.wasPressed()) {
+    String testStr = "9C:9C:1F:C1:D5:D0,4,120,0,1,NN\n";
+    Serial.println(F("BtnA"));
+
+    if (dataSplit(testStr) == 0) {  // データESP-NOWで送信するための構造体に格納
+      EspNowSend();                 // データ送信
+      delay(1000);
+    }
+
+  } else if (M5.BtnB.wasPressed()) {
+    String testStr = "";
+
+    switch (testCnt) {
+      case 0:
+        testStr = "9C:9C:1F:C1:D5:D0,2,120,90,1,BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB\n";
+        Serial.println(F("Btn B 0"));
+        break;
+      case 1:
+        testStr = "9C:9C:1F:C1:D5:D0,2,120,90,1,RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR\n";
+        Serial.println(F("Btn B 1"));
+        break;
+      case 2:
+        testStr = "9C:9C:1F:C1:D5:D0,2,120,90,1,GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG\n";
+        Serial.println(F("Btn B 2"));
+        break;
+      case 3:
+        testStr = "9C:9C:1F:C1:D5:D0,2,120,90,1,WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW\n";
+        Serial.println(F("Btn B 3"));
+        break;
+    }
+
+    testCnt = testCnt % 3;
+
+    if (dataSplit(testStr) == 0) {  // データESP-NOWで送信するための構造体に格納
+      EspNowSend();                 // データ送信
+      delay(1000);
+    }
+    testCnt++;
+
+  } else if (M5.BtnC.wasPressed()) {
+    String testStr = "9C:9C:1F:C1:D5:D0,3,120,90,1,NN\n";
+    Serial.println(F("Btn C "));
+
+    if (dataSplit(testStr) == 0) {  // データESP-NOWで送信するための構造体に格納
+      EspNowSend();                 // データ送信
+      delay(1000);
+    }
+  }
 
   //PCからシリアルデータの読み込み
-  while (SerialBT.available() > 0)  // 受信したデータバッファが1バイト以上存在する場合
+  while (Serial.available() > 0)  // 受信したデータバッファが1バイト以上存在する場合
   {
-    char inChar = (char)SerialBT.read();  // Serialからデータ読み込み
+    char inChar = (char)Serial.read();  // Serialからデータ読み込み
 
     if (bufp >= DATASIZE) {
       //バッファクリア
       bufp = 0;
-      while (SerialBT.available() > 0) {
-        SerialBT.read();
+      while (Serial.available() > 0) {
+        Serial.read();
       }
     }
 
@@ -205,8 +260,8 @@ void loop() {
 
       if (bufp >= 25 && sendF == true) {  //データのバイト数に不足がない場合に送信
 
-        if (dataSend(strData) == 0) {  // データESP-NOWで送信
-          EspNowSend();                //データ送信
+        if (dataSplit(strData) == 0) {  // データESP-NOWで送信
+          EspNowSend();                 //データ送信
           delay(3);
         }
       }
@@ -214,8 +269,8 @@ void loop() {
       //バッファクリア
       bufp = 0;
       buffArr[bufp] = '\0';
-      while (SerialBT.available() > 0) {
-        SerialBT.read();
+      while (Serial.available() > 0) {
+        Serial.read();
       }
 
     } else if (inChar == '\r' || inChar == '\0')  // CRの改行コードの場合かNULL文字は結合しない
