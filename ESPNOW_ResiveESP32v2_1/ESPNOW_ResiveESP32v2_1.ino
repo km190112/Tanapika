@@ -15,8 +15,8 @@ String verson = "Ver:2.1";
 
 //FastLED
 #define LED_PIN 26          //LEDの信号出力のピン番号
-#define TEST_BRIGHTNESS 20  //テスト用 LEDの明るさ
-#define TEST_LEDLEN 600     //テスト用 LEDの個数
+#define TEST_BRIGHTNESS 60  //テスト用 LEDの明るさ
+#define TEST_LEDLEN 200     //テスト用 LEDの個数
 #define LED_TYPE WS2812B
 #define COLOR_ORDER GRB
 
@@ -41,6 +41,7 @@ void fastLedClear() {
   FastLED.clear();
   FastLED.show();
   delay(50);
+  return;
 }
 
 
@@ -61,43 +62,55 @@ void LedTest() {
     FastLED.show();
   }
 
+  delay(50);
   FastLED.clear();
+  delay(50);
 
   for (i = 0; i < TEST_LEDLEN; i++) {
     delay(10);
     leds[i] = CRGB(0, TEST_BRIGHTNESS, 0);
     FastLED.show();
   }
-
+  delay(50);
   FastLED.clear();
+  delay(50);
+
   for (i = 0; i < TEST_LEDLEN; i++) {
     delay(10);
     leds[i] = CRGB(0, 0, TEST_BRIGHTNESS);
     FastLED.show();
   }
-
+  delay(50);
   FastLED.clear();
+  delay(50);
+
   for (i = 0; i < TEST_LEDLEN; i++) {
     delay(10);
     leds[i] = CRGB(TEST_BRIGHTNESS, TEST_BRIGHTNESS, 0);
     FastLED.show();
   }
-
+  delay(50);
   FastLED.clear();
+  delay(50);
+
   for (i = 0; i < TEST_LEDLEN; i++) {
     delay(10);
     leds[i] = CRGB(TEST_BRIGHTNESS, 0, TEST_BRIGHTNESS);
     FastLED.show();
   }
-
+  delay(50);
   FastLED.clear();
+  delay(50);
+
   for (i = 0; i < TEST_LEDLEN; i++) {
     delay(10);
     leds[i] = CRGB(0, TEST_BRIGHTNESS, TEST_BRIGHTNESS);
     FastLED.show();
   }
-
+  delay(50);
   FastLED.clear();
+  delay(50);
+
   for (i = 0; i < TEST_LEDLEN; i++) {
     delay(10);
     leds[i] = CRGB(TEST_BRIGHTNESS, TEST_BRIGHTNESS, TEST_BRIGHTNESS);
@@ -107,6 +120,7 @@ void LedTest() {
   delay(1000);
 
   fastLedClear();
+  return;
 }
 
 
@@ -145,7 +159,7 @@ void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len) {
 
     String test = "";
     for (i = 0; i <= myData.ledLen; i++) {
-      if (i > sizeof(myData.ledColor)) {
+      if (i >= sizeof(myData.ledColor)) {
         break;
       }
 
@@ -171,7 +185,6 @@ void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len) {
       }
     }
     FastLED.show();
-
 
     Serial.print(F("LED Color:"));
     Serial.println(test);
