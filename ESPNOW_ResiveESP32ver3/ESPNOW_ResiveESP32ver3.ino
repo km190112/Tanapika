@@ -10,13 +10,13 @@
 #include <esp_now.h>
 #include <FastLED.h>
 
-String verson = "Ver:3";
+#define SOFTWERE_VER 3.0
 
 #define SERIAL_BPS 115200  // USBシリアル通信の速度bps
 
 //FastLED
 #define LED_PIN 26          // LEDの信号出力のピン番号
-#define TEST_BRIGHTNESS 50  // テスト用 LEDの明るさ
+#define TEST_BRIGHTNESS 40  // テスト用 LEDの明るさ
 #define MAX_LEDLEN 200      // 制御できるLEDの最大個数
 #define LED_TYPE WS2812B
 #define COLOR_ORDER GRB
@@ -198,8 +198,9 @@ void setup() {
 
   fastLedClear();  // LED全消去
 
-  Serial.print(F("TanaPika Received :"));
-  Serial.println(verson);
+  Serial.print(F("TanaPika Received"));
+  Serial.print(F("Softwere Ver : "));  
+  Serial.println(SOFTWERE_VER);
 
   Serial.print(F("MACAddress: "));
   Serial.println(WiFi.macAddress());  // このアドレスを送信側へ登録します
