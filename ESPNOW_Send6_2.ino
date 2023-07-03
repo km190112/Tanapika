@@ -1,7 +1,7 @@
 /**************************************
   PCからシリアル通信で受信してESP-NOWで指定のマイコンにLEDテープの制御データを送信する。
  **************************************
-  デバイスは:M5Stack Basic (Core-ESP32)
+  デバイスは:M5Stack Basic (M5Stack-Core-ESP32)
  
   ESP-NOWはWPA2標準で使用するための標準暗号化プロトコル
   ESP32の開発会社であるEspressifが開発した通信方式で、
@@ -14,7 +14,7 @@
   デフォルトは8bit、パリティなし、1ストップビット
   PCからの送信データイメージ
   MACアドレス,マイコンのフラグ,LEDの明るさ,接続しているLEDの最大数,利用するLEDの間隔,LEDごとの色フラグ\r\n
-  //PCの送信データ例"C0:49:EF:69:F9:04,2,100,50,2,RRRRGGBNNWWWWGBRGBR\r\n"
+  //PCの送信データ例"C0:49:EF:69:F9:04,2,100,50,2,RRRRGGBNNWWWWGBRGBR\n"
   LEDを制御できる最大数：200個(通信するための構造体struct_messageのledColorの数-1) 
 */
 
@@ -160,7 +160,7 @@ void ESPNOW_deletePeer() {
 
   if (delStatus == ESP_OK) {
     // Delete success
-    // Serial.println("Success");
+    Serial.println("Success");
   } else if (delStatus == ESP_ERR_ESPNOW_NOT_INIT) {
     // How did we get so far!!
     Serial.println("ESPNOW Not Init");
@@ -305,10 +305,7 @@ void loop() {
     String strAllReset = "FF:FF:FF:FF:FF:FF,1,0,1,1,N\n";  // 全端末のリセット
 
     if (ESPNOWsetData(strAllReset) == 0) {  // データESP-NOWで送信するための構造体に格納
-
-      EspNowSend();  // 正常なデータであればデータ送信
-    } else {
-      Serial.println(F("setDate Err"));
+      EspNowSend();                         // 正常なデータであればデータ送信
     }
 
     delay(200);
