@@ -1,13 +1,17 @@
 /**************************************
   PCからシリアル通信で受信してESP-NOWで指定のマイコンにLEDテープの制御データを送信する。
+  開発者：松岡 賢
+  開発日：2022/01/08
+  更新日：2023/07/04
  **************************************
+
   デバイスは:M5Stack Basic (M5Stack-Core-ESP32)
- 
+
   ESP-NOWはWPA2標準で使用するための標準暗号化プロトコル
   ESP32の開発会社であるEspressifが開発した通信方式で、
   内容的にはIEEE 802.11のCCM Protocolを使って通信
   esp_now_add_peer() 送信先登録：登録最大数は20台
-   ※TODO 21台以上は送信先を削除して対応できるコード記述したが、私のお金がないため未検証。
+  ※TODO 21台以上は送信先を削除して対応できるコード記述したが、私のお金がないため未検証。
   
   esp_now_send()     送信：送信先MACアドレスを指定して、250バイトまでのデータを送信可能
   USBのボーレート UART0(USB):115200bps
@@ -156,11 +160,11 @@ void ESPNOW_deletePeer() {
   // ESPNOW　ペアリストを削除
   esp_err_t delStatus = esp_now_del_peer(peerInfo.peer_addr);
 
-  Serial.print("Slave Delete Status: ");
+  // Serial.print("Slave Delete Status: ");
 
   if (delStatus == ESP_OK) {
     // Delete success
-    Serial.println("Success");
+    // Serial.println("Success");
   } else if (delStatus == ESP_ERR_ESPNOW_NOT_INIT) {
     // How did we get so far!!
     Serial.println("ESPNOW Not Init");
@@ -178,7 +182,7 @@ void ESPNOW_sendData() {
   const uint8_t *peer_addrP = peerInfo.peer_addr;
   esp_err_t result = esp_now_send(peer_addrP, (uint8_t *)&myData, sizeof(myData));
 
-  Serial.print("Send Status: ");
+  // Serial.print("Send Status: ");
 
   if (result == ESP_OK) {
     // Serial.println("Success");
@@ -220,7 +224,7 @@ void EspNowSend() {
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
   char macStr[18];
   snprintf(macStr, sizeof(macStr), "%02X:%02X:%02X:%02X:%02X:%02X",
-           mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
+            mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
 
   Serial.println(macStr);
 }
