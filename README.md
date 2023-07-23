@@ -45,7 +45,9 @@ PCーUSBケーブルー送信機(M5StackBasic)----受信機(ESP32)ーLEDテー�
 
 
 # **５．利用者の初期設定**
-PCと送信機を接続するために、PCUSBシリアルドライバーを以下公式サイトからダウンロードし、PCにインストールする。
+PCと送信機を接続するために、PCにUSBシリアルドライバーをインストールする。
+
+以下公式サイトからダウンロードし、PCにインストールする。
  
 PCのOSによってインストールするドライバーが違うので注意。
  
@@ -54,6 +56,7 @@ https://docs.m5stack.com/en/download
 M5StackBasic2.7のドライバ　→　CH9102F:CH9102_VCP_SER_Windows,CH9102_VCP_SER_MacOS v1.7,CH9102 MacOS(M1 Silicon),
 
 M5StackBasic2.6以前のドライバ　→　CP2104 :CP210x_VCP_Windows,CP210x_VCP_MacOS,CP210x_VCP_Linux
+
 
 # **６．受信機の制作**
 ・ESP32のGPIO26にLEDテープの信号線を接続する。
@@ -68,7 +71,9 @@ M5StackBasic2.6以前のドライバ　→　CP2104 :CP210x_VCP_Windows,CP210x_V
  
 ・インストールするプログラム：ESPNOW_ResiveESP32ver3.ino
 
-　FastLEDのライブラリを使用しています。
+・FastLEDのライブラリを使用しています。
 
-# **送信機の制作**
-・インストールするプログラム：
+
+# **７．送信機の制作**
+
+・インストールするプログラム：ESPNOW_Send6_2.ino
