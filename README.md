@@ -67,3 +67,8 @@ M5StackBasic2.6以前のドライバ　→　CP2104 :CP210x_VCP_Windows,CP210x_V
 　必要であれば、ESP32の電源ーGND間に220μFのコンデンサを接続すると安定する。
  
 ・インストールするプログラム：ESPNOW_ResiveESP32ver3.ino
+
+　FastLEDのライブラリを使用しています。
+
+# **送信機の制作**
+・インストールするプログラム：
