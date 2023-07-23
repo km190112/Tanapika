@@ -25,8 +25,6 @@ PC
 
 Database1.accdb(AccessDB)
        
-       |
-       
 tanaPikaV10.xlsm　ー　USBケーブルー送信機(M5StackBasic)　----　受信機(ESP32)　ー　LEDテープ()
 
 
