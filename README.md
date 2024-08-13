@@ -81,8 +81,7 @@ M5StackBasic2.6以前のドライバ　→　CP2104 :CP210x_VCP_Windows,CP210x_V
 　必要であれば、ESP32の電源ーGND間に220μFのコンデンサを接続すると安定する。
  
 ・インストールするプログラム：ESPNOW_ResiveESP32ver3.ino
-　※Arduino ESP32コアのESP32ボードアドオンバージョン2.X(ESP-IDF 4.4ベース)からバージョン3.0(ESP-IDF 5.1ベース)への変更されているが、
-  最新のバージョンは現時点で動かない。
+　※Arduino ESP32コアのESP32ボードアドオンバージョン2.X(ESP-IDF 4.4ベース)からバージョン3.0(ESP-IDF 5.1ベース)への変更されているが、最新のバージョンは現時点で動かない。
   
   インストールするボードマネージャ："ESP32 by Espressif Systens 2.0.17"
   
