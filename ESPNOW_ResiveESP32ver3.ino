@@ -2,13 +2,14 @@
   ESP-NOW受信側のプログラム
   ESP-NOWで受信した'struct_message'構造体からLED(WS2812b)のLEDを光らせる。(消灯,Red,Green,Blue,White)と明るさの調整が可能
   マイコンはESP32 DevkitCを使用
+  ボードマネージャーは　"ESP32 by Espressif Systens 2.0.17"
   ESP-NOWはWPA2標準で使用するための標準暗号化プロトコル
   ESP32の開発会社であるEspressifが開発した通信方式で、内容的にはIEEE 802.11のCCM Protocolを使って通信
 */
 
 #include <WiFi.h>
 #include <esp_now.h>
-#include <FastLED.h>
+#include <FastLED.h>       // FastLED by Daniel Ver 3.7.1
 
 #define SOFTWERE_VER 3.0
 
